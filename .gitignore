@@ -1,0 +1,61 @@
+# Dependencies & Package Managers
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build Outputs & Bundles
+dist/
+build/
+out/
+.next/
+*.tsbuildinfo
+
+# Turborepo & Caches
+.turbo/
+.cache/
+.nyc_output/
+coverage/
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+*.pem
+*.key
+*.cert
+
+# Real User Financial Data & Statements (Confidential / Personal)
+*.pdf
+*.csv
+*.ofx
+conta-fatura-itau.pdf
+flash_extrato_*.csv
+
+# Tool & MCP Temporary Artifacts
+.playwright-mcp/
+.opencode/
+openspec/
+.agent/
+
+# IDE & Editor Files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log

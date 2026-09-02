@@ -1,0 +1,34 @@
+export enum AccountType {
+  CHECKING = 'CHECKING',
+  SAVINGS = 'SAVINGS',
+  INVESTMENT = 'INVESTMENT',
+  CASH = 'CASH',
+  BENEFIT_CARD = 'BENEFIT_CARD',
+}
+
+export enum TransactionType {
+  INCOME = 'INCOME',
+  EXPENSE = 'EXPENSE',
+  TRANSFER = 'TRANSFER',
+  INVOICE_PAYMENT = 'INVOICE_PAYMENT',
+}
+
+export enum InvoiceStatus {
+  OPEN = 'OPEN',
+  CLOSED = 'CLOSED',
+  PAID = 'PAID',
+  OVERDUE = 'OVERDUE',
+}
+
+export enum CostClassification {
+  FIXED = 'FIXED',
+  VARIABLE = 'VARIABLE',
+  ESSENTIAL = 'ESSENTIAL',
+  DISCRETIONARY = 'DISCRETIONARY',
+}
+
+export enum DebtPayoffStrategy {
+  SNOWBALL = 'SNOWBALL',
+  AVALANCHE = 'AVALANCHE',
+  FIXED_CONTRIBUTION = 'FIXED_CONTRIBUTION',
+}

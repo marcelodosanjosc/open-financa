@@ -1,0 +1,214 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  INVESTMENT
+  CASH
+  BENEFIT_CARD
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+  INVOICE_PAYMENT
+}
+
+enum InvoiceStatus {
+  OPEN
+  CLOSED
+  PAID
+  OVERDUE
+}
+
+enum CostClassification {
+  FIXED
+  VARIABLE
+  ESSENTIAL
+  DISCRETIONARY
+}
+
+model User {
+  id           String      @id @default(uuid()) @db.Uuid
+  email        String      @unique @db.VarChar(255)
+  passwordHash String      @map("password_hash") @db.VarChar(255)
+  fullName     String      @map("full_name") @db.VarChar(150)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  accounts          Account[]
+  categories        Category[]
+  creditCards       CreditCard[]
+  installmentGroups InstallmentGroup[]
+  transactions      Transaction[]
+  budgets           Budget[]
+
+  @@map("users")
+}
+
+model Category {
+  id             String             @id @default(uuid()) @db.Uuid
+  userId         String             @map("user_id") @db.Uuid
+  name           String             @db.VarChar(100)
+  icon           String?            @db.VarChar(50)
+  color          String?            @db.VarChar(20)
+  classification CostClassification @default(VARIABLE)
+  parentId       String?            @map("parent_id") @db.Uuid
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent             Category?           @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  subcategories      Category[]          @relation("CategoryHierarchy")
+  transactions       Transaction[]
+  creditCardExpenses CreditCardExpense[]
+  budgets            Budget[]
+
+  @@map("categories")
+}
+
+model Budget {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  categoryId     String   @map("category_id") @db.Uuid
+  monthlyLimit   Decimal  @map("monthly_limit") @db.Decimal(14, 2)
+  referenceMonth Int      @map("reference_month") @db.SmallInt
+  referenceYear  Int      @map("reference_year") @db.SmallInt
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId, referenceYear, referenceMonth])
+  @@map("budgets")
+}
+
+model Account {
+  id             String      @id @default(uuid()) @db.Uuid
+  userId         String      @map("user_id") @db.Uuid
+  name           String      @db.VarChar(100)
+  type           AccountType @default(CHECKING)
+  initialBalance Decimal     @default(0.00) @map("initial_balance") @db.Decimal(14, 2)
+  currentBalance Decimal     @default(0.00) @map("current_balance") @db.Decimal(14, 2)
+  currency       String      @default("BRL") @db.VarChar(3)
+  isActive       Boolean     @default(true) @map("is_active")
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  user                    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditCardsAsDefault    CreditCard[]  @relation("DefaultCardAccount")
+  transactions            Transaction[] @relation("AccountTransactions")
+  destinationTransactions Transaction[] @relation("DestinationAccountTransactions")
+
+  @@map("accounts")
+}
+
+model CreditCard {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  name             String   @db.VarChar(100)
+  lastFourDigits   String?  @map("last_four_digits") @db.VarChar(4)
+  creditLimit      Decimal  @map("credit_limit") @db.Decimal(14, 2)
+  closingDay       Int      @map("closing_day") @db.SmallInt
+  dueDay           Int      @map("due_day") @db.SmallInt
+  interestRate     Decimal? @default(0.00) @map("interest_rate") @db.Decimal(5, 2)
+  defaultAccountId String?  @map("default_account_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultAccount Account?  @relation("DefaultCardAccount", fields: [defaultAccountId], references: [id], onDelete: SetNull)
+  invoices       Invoice[]
+
+  @@map("credit_cards")
+}
+
+model Invoice {
+  id             String        @id @default(uuid()) @db.Uuid
+  creditCardId   String        @map("credit_card_id") @db.Uuid
+  referenceYear  Int           @map("reference_year") @db.SmallInt
+  referenceMonth Int           @map("reference_month") @db.SmallInt
+  closingDate    DateTime      @map("closing_date") @db.Date
+  dueDate        DateTime      @map("due_date") @db.Date
+  status         InvoiceStatus @default(OPEN)
+  totalAmount    Decimal       @default(0.00) @map("total_amount") @db.Decimal(14, 2)
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  creditCard   CreditCard          @relation(fields: [creditCardId], references: [id], onDelete: Cascade)
+  expenses     CreditCardExpense[]
+  transactions Transaction[]
+
+  @@unique([creditCardId, referenceYear, referenceMonth], name: "uq_card_invoice_period")
+  @@map("invoices")
+}
+
+model InstallmentGroup {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  description       String   @db.VarChar(255)
+  totalAmount       Decimal  @map("total_amount") @db.Decimal(14, 2)
+  totalInstallments Int      @map("total_installments") @db.SmallInt
+  purchaseDate      DateTime @map("purchase_date") @db.Date
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses CreditCardExpense[]
+
+  @@map("installment_groups")
+}
+
+model CreditCardExpense {
+  id                 String   @id @default(uuid()) @db.Uuid
+  invoiceId          String   @map("invoice_id") @db.Uuid
+  categoryId         String?  @map("category_id") @db.Uuid
+  installmentGroupId String?  @map("installment_group_id") @db.Uuid
+  description        String   @db.VarChar(255)
+  amount             Decimal  @db.Decimal(14, 2)
+  transactionDate    DateTime @map("transaction_date") @db.Date
+  installmentNumber  Int      @default(1) @map("installment_number") @db.SmallInt
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  invoice          Invoice           @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  category         Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  installmentGroup InstallmentGroup? @relation(fields: [installmentGroupId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("credit_card_expenses")
+}
+
+model Transaction {
+  id                   String          @id @default(uuid()) @db.Uuid
+  userId               String          @map("user_id") @db.Uuid
+  accountId            String          @map("account_id") @db.Uuid
+  categoryId           String?         @map("category_id") @db.Uuid
+  destinationAccountId String?         @map("destination_account_id") @db.Uuid
+  invoiceId            String?         @map("invoice_id") @db.Uuid
+  description          String          @db.VarChar(255)
+  amount               Decimal         @db.Decimal(14, 2)
+  type                 TransactionType
+  date                 DateTime        @db.Date
+  competenceDate       DateTime        @map("competence_date") @db.Date
+  isReconciled         Boolean         @default(false) @map("is_reconciled")
+  externalId           String?         @map("external_id") @db.VarChar(255)
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account            Account   @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+  category           Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  destinationAccount Account?  @relation("DestinationAccountTransactions", fields: [destinationAccountId], references: [id], onDelete: SetNull)
+  invoice            Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  @@index([userId, date])
+  @@index([userId, competenceDate])
+  @@index([externalId])
+  @@map("transactions")
+}

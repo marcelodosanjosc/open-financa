@@ -15,9 +15,10 @@ import {
   CreateBudgetDto,
   UpdateBudgetSchema,
   UpdateBudgetDto,
+  UserPayloadDto,
 } from '@repo/shared';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
-import { DEFAULT_USER_ID } from '../../common/constants';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Budgets')
@@ -27,36 +28,44 @@ export class BudgetsController {
 
   @Get()
   @ApiOperation({ summary: 'List budgets for a specific month and year' })
-  async findAll(@Query('year') year?: string, @Query('month') month?: string) {
+  async findAll(
+    @CurrentUser() user: UserPayloadDto,
+    @Query('year') year?: string,
+    @Query('month') month?: string,
+  ) {
     const now = new Date();
     const targetYear = year ? parseInt(year, 10) : now.getFullYear();
     const targetMonth = month ? parseInt(month, 10) : now.getMonth() + 1;
-    return this.budgetsService.findAll(DEFAULT_USER_ID, targetYear, targetMonth);
+    return this.budgetsService.findAll(user.id, targetYear, targetMonth);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get budget by ID' })
-  async findById(@Param('id') id: string) {
-    return this.budgetsService.findById(DEFAULT_USER_ID, id);
+  async findById(@CurrentUser() user: UserPayloadDto, @Param('id') id: string) {
+    return this.budgetsService.findById(user.id, id);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create or update budget for category and month' })
   @UsePipes(new ZodValidationPipe(CreateBudgetSchema))
-  async createOrUpdate(@Body() body: CreateBudgetDto) {
-    return this.budgetsService.createOrUpdate(DEFAULT_USER_ID, body);
+  async createOrUpdate(@CurrentUser() user: UserPayloadDto, @Body() body: CreateBudgetDto) {
+    return this.budgetsService.createOrUpdate(user.id, body);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update budget limit' })
   @UsePipes(new ZodValidationPipe(UpdateBudgetSchema))
-  async update(@Param('id') id: string, @Body() body: UpdateBudgetDto) {
-    return this.budgetsService.update(DEFAULT_USER_ID, id, body);
+  async update(
+    @CurrentUser() user: UserPayloadDto,
+    @Param('id') id: string,
+    @Body() body: UpdateBudgetDto,
+  ) {
+    return this.budgetsService.update(user.id, id, body);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete budget' })
-  async delete(@Param('id') id: string) {
-    return this.budgetsService.delete(DEFAULT_USER_ID, id);
+  async delete(@CurrentUser() user: UserPayloadDto, @Param('id') id: string) {
+    return this.budgetsService.delete(user.id, id);
   }
 }

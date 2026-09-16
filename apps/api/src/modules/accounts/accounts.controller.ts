@@ -15,9 +15,10 @@ import {
   CreateAccountDto,
   UpdateAccountSchema,
   UpdateAccountDto,
+  UserPayloadDto,
 } from '@repo/shared';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
-import { DEFAULT_USER_ID } from '../../common/constants';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Accounts')
@@ -27,33 +28,37 @@ export class AccountsController {
 
   @Get()
   @ApiOperation({ summary: 'List all accounts' })
-  async findAll() {
-    return this.accountsService.findAll(DEFAULT_USER_ID);
+  async findAll(@CurrentUser() user: UserPayloadDto) {
+    return this.accountsService.findAll(user.id);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get account by ID' })
-  async findById(@Param('id') id: string) {
-    return this.accountsService.findById(DEFAULT_USER_ID, id);
+  async findById(@CurrentUser() user: UserPayloadDto, @Param('id') id: string) {
+    return this.accountsService.findById(user.id, id);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create new account' })
   @UsePipes(new ZodValidationPipe(CreateAccountSchema))
-  async create(@Body() body: CreateAccountDto) {
-    return this.accountsService.create(DEFAULT_USER_ID, body);
+  async create(@CurrentUser() user: UserPayloadDto, @Body() body: CreateAccountDto) {
+    return this.accountsService.create(user.id, body);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update account' })
   @UsePipes(new ZodValidationPipe(UpdateAccountSchema))
-  async update(@Param('id') id: string, @Body() body: UpdateAccountDto) {
-    return this.accountsService.update(DEFAULT_USER_ID, id, body);
+  async update(
+    @CurrentUser() user: UserPayloadDto,
+    @Param('id') id: string,
+    @Body() body: UpdateAccountDto,
+  ) {
+    return this.accountsService.update(user.id, id, body);
   }
 
   @Patch(':id/deactivate')
   @ApiOperation({ summary: 'Deactivate account' })
-  async deactivate(@Param('id') id: string) {
-    return this.accountsService.deactivate(DEFAULT_USER_ID, id);
+  async deactivate(@CurrentUser() user: UserPayloadDto, @Param('id') id: string) {
+    return this.accountsService.deactivate(user.id, id);
   }
 }

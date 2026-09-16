@@ -1,8 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { api } from '../../lib/api';
+import { UserPayloadDto } from '@repo/shared';
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -12,6 +14,7 @@ import {
   UploadCloud,
   PieChart,
   ShieldCheck,
+  LogOut,
 } from 'lucide-react';
 
 const navItems = [
@@ -26,6 +29,38 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<UserPayloadDto | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    api
+      .getMe()
+      .then((res) => {
+        if (mounted) setUser(res);
+      })
+      .catch(() => {
+        // Silently fail if not logged in or in public view
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch {}
+    router.push('/login');
+    router.refresh();
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'OF';
+    const parts = name.trim().split(' ');
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
 
   return (
     <aside className="w-64 bg-slate-950/80 border-r border-slate-800/80 flex flex-col h-screen sticky top-0 backdrop-blur-xl z-20">
@@ -69,14 +104,31 @@ export function Sidebar() {
 
       {/* User profile footer */}
       <div className="p-4 border-t border-slate-800/60 bg-slate-950/40">
-        <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-900/60 border border-slate-800/40">
-          <div className="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 font-semibold flex items-center justify-center text-sm border border-emerald-500/30">
-            OF
+        <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/40">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 font-semibold flex items-center justify-center text-xs border border-emerald-500/30 shrink-0">
+              {getInitials(user?.fullName)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-slate-200 truncate">
+                {user?.fullName || 'Carregando...'}
+              </p>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-medium uppercase">
+                  {user?.role || 'USER'}
+                </span>
+                <span className="text-[11px] text-slate-500 truncate">{user?.email}</span>
+              </div>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-slate-200 truncate">Usuário Principal</p>
-            <p className="text-[11px] text-slate-400 truncate">Single-User Local</p>
-          </div>
+
+          <button
+            onClick={handleLogout}
+            title="Sair do sistema"
+            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors ml-1 cursor-pointer shrink-0"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </aside>

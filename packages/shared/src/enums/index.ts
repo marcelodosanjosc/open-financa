@@ -32,3 +32,8 @@ export enum DebtPayoffStrategy {
   AVALANCHE = 'AVALANCHE',
   FIXED_CONTRIBUTION = 'FIXED_CONTRIBUTION',
 }
+
+export enum UserRole {
+  USER = 'USER',
+  ADMIN = 'ADMIN',
+}

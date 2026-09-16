@@ -4,9 +4,13 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
+import cookieParser from 'cookie-parser';
+
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
+
+  app.use(cookieParser());
 
   app.enableCors({
     origin: true,
@@ -23,7 +27,10 @@ async function bootstrap() {
       'API REST para gestão financeira pessoal, conciliação bancária, automação de cartões de crédito e motor de quitação de dívidas.',
     )
     .setVersion('1.0.0')
+    .addTag('Auth')
     .addTag('Accounts')
+    .addBearerAuth()
+    .addCookieAuth('access_token')
     .addTag('Categories')
     .addTag('Budgets')
     .addTag('Transactions')

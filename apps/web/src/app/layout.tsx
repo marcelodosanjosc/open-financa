@@ -1,5 +1,5 @@
 import './globals.css';
-import { Sidebar } from '../components/layout/sidebar';
+import { AppShell } from '../components/layout/app-shell';
 
 export const metadata = {
   title: 'Open Finança - Gestão Financeira Inteligente',
@@ -13,11 +13,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className="dark">
-      <body className="bg-[#090d16] text-slate-100 flex min-h-screen antialiased">
-        <Sidebar />
-        <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-          {children}
-        </main>
+      <body className="bg-[#090d16] text-slate-100 min-h-screen antialiased">
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

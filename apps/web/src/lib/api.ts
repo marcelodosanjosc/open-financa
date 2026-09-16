@@ -21,20 +21,49 @@ import {
   DebtItem,
   BatchParseResultDto,
   ConfirmImportDto,
+  LoginDto,
+  RegisterDto,
+  AuthResponseDto,
+  UserPayloadDto,
 } from '@repo/shared';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
+let isRefreshing = false;
+
+async function fetchApi<T>(path: string, options?: RequestInit, isRetry = false): Promise<T> {
   const url = `${API_BASE}/api${path}`;
   const response = await fetch(url, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,
     },
     cache: 'no-store',
   });
+
+  if (response.status === 401 && !isRetry && !path.startsWith('/auth/')) {
+    if (!isRefreshing) {
+      isRefreshing = true;
+      try {
+        const refreshRes = await fetch(`${API_BASE}/api/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+        isRefreshing = false;
+        if (refreshRes.ok) {
+          return fetchApi<T>(path, options, true);
+        }
+      } catch {
+        isRefreshing = false;
+      }
+    }
+
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+    }
+  }
 
   if (!response.ok) {
     let errorMessage = `Erro na requisição (${response.status})`;
@@ -193,6 +222,7 @@ export const api = {
     const res = await fetch(`${API_BASE}/api/statement-import/preview`, {
       method: 'POST',
       body: formData,
+      credentials: 'include',
     });
     if (!res.ok) {
       const err = await res.json();
@@ -214,4 +244,21 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  // Authentication
+  login: (data: LoginDto) =>
+    fetchApi<AuthResponseDto>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  register: (data: RegisterDto) =>
+    fetchApi<AuthResponseDto>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  logout: () =>
+    fetchApi<{ message: string }>('/auth/logout', {
+      method: 'POST',
+    }),
+  getMe: () => fetchApi<UserPayloadDto>('/auth/me'),
 };

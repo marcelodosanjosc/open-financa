@@ -13,9 +13,12 @@ import {
   CreateInstallmentPurchaseDto,
   PayInvoiceSchema,
   PayInvoiceDto,
+  UserPayloadDto,
 } from '@repo/shared';
+import { UserRole } from '@prisma/client';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
-import { DEFAULT_USER_ID } from '../../common/constants';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Invoices')
@@ -28,32 +31,40 @@ export class InvoicesController {
 
   @Get('card/:cardId')
   @ApiOperation({ summary: 'List invoices for a credit card' })
-  async findByCard(@Param('cardId') cardId: string) {
-    return this.invoicesService.findByCard(DEFAULT_USER_ID, cardId);
+  async findByCard(@CurrentUser() user: UserPayloadDto, @Param('cardId') cardId: string) {
+    return this.invoicesService.findByCard(user.id, cardId);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get invoice details and expenses by ID' })
-  async findById(@Param('id') id: string) {
-    return this.invoicesService.findById(DEFAULT_USER_ID, id);
+  async findById(@CurrentUser() user: UserPayloadDto, @Param('id') id: string) {
+    return this.invoicesService.findById(user.id, id);
   }
 
   @Post('installments')
   @ApiOperation({ summary: 'Record a multi-installment credit card purchase' })
   @UsePipes(new ZodValidationPipe(CreateInstallmentPurchaseSchema))
-  async createInstallment(@Body() body: CreateInstallmentPurchaseDto) {
-    return this.invoicesService.createInstallmentPurchase(DEFAULT_USER_ID, body);
+  async createInstallment(
+    @CurrentUser() user: UserPayloadDto,
+    @Body() body: CreateInstallmentPurchaseDto,
+  ) {
+    return this.invoicesService.createInstallmentPurchase(user.id, body);
   }
 
   @Post(':id/pay')
   @ApiOperation({ summary: 'Pay an invoice from an account' })
   @UsePipes(new ZodValidationPipe(PayInvoiceSchema))
-  async payInvoice(@Param('id') id: string, @Body() body: PayInvoiceDto) {
-    return this.invoicesService.payInvoice(DEFAULT_USER_ID, id, body);
+  async payInvoice(
+    @CurrentUser() user: UserPayloadDto,
+    @Param('id') id: string,
+    @Body() body: PayInvoiceDto,
+  ) {
+    return this.invoicesService.payInvoice(user.id, id, body);
   }
 
+  @Roles(UserRole.ADMIN)
   @Post('cron/trigger')
-  @ApiOperation({ summary: 'Manually trigger invoice closing verification' })
+  @ApiOperation({ summary: 'Manually trigger invoice closing verification (Admin only)' })
   async triggerCron() {
     await this.invoiceCronService.runManualClosing();
     return { success: true, message: 'Invoice closing verification executed' };

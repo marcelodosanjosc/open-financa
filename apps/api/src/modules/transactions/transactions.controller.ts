@@ -17,9 +17,10 @@ import {
   UpdateTransactionSchema,
   UpdateTransactionDto,
   TransactionType,
+  UserPayloadDto,
 } from '@repo/shared';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
-import { DEFAULT_USER_ID } from '../../common/constants';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Transactions')
@@ -30,6 +31,7 @@ export class TransactionsController {
   @Get()
   @ApiOperation({ summary: 'List transactions with optional filters' })
   async findAll(
+    @CurrentUser() user: UserPayloadDto,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('accountId') accountId?: string,
@@ -39,7 +41,7 @@ export class TransactionsController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
-    return this.transactionsService.findAll(DEFAULT_USER_ID, {
+    return this.transactionsService.findAll(user.id, {
       startDate,
       endDate,
       accountId,
@@ -53,36 +55,41 @@ export class TransactionsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get transaction by ID' })
-  async findById(@Param('id') id: string) {
-    return this.transactionsService.findById(DEFAULT_USER_ID, id);
+  async findById(@CurrentUser() user: UserPayloadDto, @Param('id') id: string) {
+    return this.transactionsService.findById(user.id, id);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create new transaction' })
   @UsePipes(new ZodValidationPipe(CreateTransactionSchema))
-  async create(@Body() body: CreateTransactionDto) {
-    return this.transactionsService.create(DEFAULT_USER_ID, body);
+  async create(@CurrentUser() user: UserPayloadDto, @Body() body: CreateTransactionDto) {
+    return this.transactionsService.create(user.id, body);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update transaction' })
   @UsePipes(new ZodValidationPipe(UpdateTransactionSchema))
-  async update(@Param('id') id: string, @Body() body: UpdateTransactionDto) {
-    return this.transactionsService.update(DEFAULT_USER_ID, id, body);
+  async update(
+    @CurrentUser() user: UserPayloadDto,
+    @Param('id') id: string,
+    @Body() body: UpdateTransactionDto,
+  ) {
+    return this.transactionsService.update(user.id, id, body);
   }
 
   @Patch(':id/reconcile')
   @ApiOperation({ summary: 'Toggle reconciliation status' })
   async toggleReconcile(
+    @CurrentUser() user: UserPayloadDto,
     @Param('id') id: string,
     @Body('isReconciled') isReconciled: boolean,
   ) {
-    return this.transactionsService.toggleReconciled(DEFAULT_USER_ID, id, isReconciled ?? true);
+    return this.transactionsService.toggleReconciled(user.id, id, isReconciled ?? true);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete transaction' })
-  async delete(@Param('id') id: string) {
-    return this.transactionsService.delete(DEFAULT_USER_ID, id);
+  async delete(@CurrentUser() user: UserPayloadDto, @Param('id') id: string) {
+    return this.transactionsService.delete(user.id, id);
   }
 }

@@ -2,12 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 // @ts-ignore
 import request from 'supertest';
+import cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('Statement Import AI Classification Endpoint', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let authCookies: any;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -15,10 +17,21 @@ describe('Statement Import AI Classification Endpoint', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.use(cookieParser());
     app.setGlobalPrefix('api');
     await app.init();
 
     prisma = app.get(PrismaService);
+
+    const loginRes = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({
+        email: 'usuario@openfinanca.local',
+        password: 'admin123',
+      })
+      .expect(200);
+
+    authCookies = loginRes.headers['set-cookie'];
   });
 
   afterAll(async () => {
@@ -36,6 +49,7 @@ describe('Statement Import AI Classification Endpoint', () => {
 
     const res = await request(app.getHttpServer())
       .post('/api/statement-import/ai-classify')
+      .set('Cookie', authCookies)
       .send({ transactions: sampleBatch })
       .expect(201);
 

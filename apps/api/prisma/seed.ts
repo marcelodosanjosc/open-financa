@@ -1,4 +1,5 @@
-import { PrismaClient, CostClassification, AccountType } from '@prisma/client';
+import { PrismaClient, CostClassification, AccountType, UserRole } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -7,18 +8,24 @@ export const DEFAULT_USER_ID = '00000000-0000-0000-0000-000000000001';
 async function main() {
   console.log('Seeding database for Open Finança...');
 
+  const passwordHash = await bcrypt.hash('admin123', 10);
+
   // 1. Create or upsert default user
   const user = await prisma.user.upsert({
     where: { id: DEFAULT_USER_ID },
-    update: {},
+    update: {
+      passwordHash,
+      role: UserRole.ADMIN,
+    },
     create: {
       id: DEFAULT_USER_ID,
       email: 'usuario@openfinanca.local',
       fullName: 'Usuário Open Finança',
-      passwordHash: 'seeded_password_hash',
+      passwordHash,
+      role: UserRole.ADMIN,
     },
   });
-  console.log(`✓ User ready: ${user.fullName} (${user.id})`);
+  console.log(`✓ User ready: ${user.fullName} (${user.id}) [Role: ${user.role}]`);
 
   // 2. Create baseline categories
   const categoriesData = [

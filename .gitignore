@@ -40,6 +40,9 @@ flash_extrato_*.csv
 .opencode/
 openspec/
 .agent/
+.agents/
+.claude/
+.cursor/
 
 # IDE & Editor Files
 .idea/

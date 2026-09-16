@@ -10,11 +10,13 @@ import { InvoicesModule } from './modules/invoices/invoices.module';
 import { DebtPayoffModule } from './modules/debt-payoff/debt-payoff.module';
 import { StatementImportModule } from './modules/statement-import/statement-import.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     PrismaModule,
+    AuthModule,
     AccountsModule,
     CategoriesModule,
     BudgetsModule,

@@ -5,6 +5,7 @@ import {
   InvoiceStatus,
   CostClassification,
   DebtPayoffStrategy,
+  UserRole,
 } from '../enums';
 
 // -------------------------------------------------------------
@@ -331,4 +332,32 @@ export interface FutureTimelineResponseDto {
   finalPayoffMonth: string; // YYYY-MM
   totalFutureCommitted: number;
   months: FutureInvoiceMonthSummaryDto[];
+}
+
+// -------------------------------------------------------------
+// Auth Schemas & DTOs
+// -------------------------------------------------------------
+export const RegisterSchema = z.object({
+  email: z.string().email('E-mail inválido'),
+  password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres'),
+  fullName: z.string().min(2, 'O nome deve ter no mínimo 2 caracteres').max(150),
+});
+export type RegisterDto = z.infer<typeof RegisterSchema>;
+
+export const LoginSchema = z.object({
+  email: z.string().email('E-mail inválido'),
+  password: z.string().min(1, 'A senha é obrigatória'),
+});
+export type LoginDto = z.infer<typeof LoginSchema>;
+
+export interface UserPayloadDto {
+  id: string;
+  email: string;
+  fullName: string;
+  role: UserRole;
+}
+
+export interface AuthResponseDto {
+  user: UserPayloadDto;
+  message?: string;
 }

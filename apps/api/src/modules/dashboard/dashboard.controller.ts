@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
-import { DEFAULT_USER_ID } from '../../common/constants';
+import { UserPayloadDto } from '@repo/shared';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Dashboard')
@@ -10,15 +11,19 @@ export class DashboardController {
 
   @Get('summary')
   @ApiOperation({ summary: 'Get current month dashboard summary KPIs and cost classification' })
-  async getSummary(@Query('year') year?: string, @Query('month') month?: string) {
+  async getSummary(
+    @CurrentUser() user: UserPayloadDto,
+    @Query('year') year?: string,
+    @Query('month') month?: string,
+  ) {
     const y = year ? parseInt(year, 10) : undefined;
     const m = month ? parseInt(month, 10) : undefined;
-    return this.dashboardService.getSummary(DEFAULT_USER_ID, y, m);
+    return this.dashboardService.getSummary(user.id, y, m);
   }
 
   @Get('recent-transactions')
   @ApiOperation({ summary: 'Get recent transactions for dashboard preview' })
-  async getRecent() {
-    return this.dashboardService.getRecentTransactions(DEFAULT_USER_ID);
+  async getRecent(@CurrentUser() user: UserPayloadDto) {
+    return this.dashboardService.getRecentTransactions(user.id);
   }
 }
